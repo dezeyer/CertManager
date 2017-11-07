@@ -70,6 +70,7 @@ class GetSSL
             $this->generateConfigFile($params);
             return 2;
         }
+        return 3;
     }
 
     /**
@@ -91,6 +92,7 @@ class GetSSL
             return 0;
         exec($this->GetSSLBin . "-a", $output);
         $this->debug($output);
+        return 1;
     }
 
     public function getconfig()
@@ -167,6 +169,7 @@ class GetSSL
         $config = $this->getconfig();
         unset($config["SANS"][$sanid]);
         $this->generateConfigFile($config);
+        return 1;
     }
 
     public function updatesan($key, $SAN)
@@ -190,6 +193,7 @@ class GetSSL
         if(count($aclarray) != 0)
             $params["ACL"] = $aclarray;
         $this->generateConfigFile($params);
+        return 1;
     }
 
     public function setmultipleacl($aclarray)
@@ -200,6 +204,7 @@ class GetSSL
         if(count($aclarray) != 0)
             $params["ACL"] = $aclarray;
         $this->generateConfigFile($params);
+        return 1;
     }
 
     /**
@@ -217,6 +222,7 @@ class GetSSL
         $params["VALIDATE_VIA_DNS"] = "true";
         $params["DNSCONF"] = $dnsconfigid;
         $this->generateConfigFile($params);
+        return 1;
     }
 
     public function updateparam($key, $value)
@@ -263,6 +269,7 @@ class GetSSL
         $taskname = "forcerenewal_".$this->domainname;
 
         TaskManager::killTask($taskname);
+        return 1;
     }
 
     private function generateConfigFile($params)
@@ -291,7 +298,7 @@ class GetSSL
         }
 
         if(!isset($params["ACL"])){
-            $params["ACL"][0] = "/var/www/html/.well-known/acme-challenge";
+            $params["ACL"][0] = dirname( dirname(__FILE__) )."/.well-known/acme-challenge";
         }
 
         //SET ACL/DNS
@@ -299,9 +306,6 @@ class GetSSL
             if ($params["USE_SINGLE_ACL"] == "false" && isset($params["ACL"])) {
 
                 $aclstring = "ACL=(";
-                /*if (trim($params["ACL"][0]) == "") {
-                    $params["ACL"][0] = "/var/www/html/.well-known/acme-challenge";
-                }*/
                 for ($i = 0; $i < count($params["SANS"]) + 1; $i++) {
                     if (isset($params["ACL"][$i]) && trim($params["ACL"][$i]) != "")
                         $aclstring .= "'" . $params["ACL"][$i] . "'\n";
