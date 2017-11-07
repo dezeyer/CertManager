@@ -1,0 +1,10 @@
+Let's manage certificates from one place, trought a simple web gui
+
+if i get this composer things, the adminlte and smarty libs will be removed.
+
+Download and move into your webroot, make sure your webserver has write access to the upper directory, where the
+certificate folder will be created. Paths can be changed in config.php. Don't forget to set a cronjob, as discriped in
+the dashboard (soon).
+
+feel free to make your own of this shit, i never found a solution like this that isn't integrated in an webspace
+management like vesta eg., so i created my own.
