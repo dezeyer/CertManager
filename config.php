@@ -6,7 +6,7 @@
  * Time: 17:16
  */
 define("PASSWORD","123456");
-define("GETSSLDIR",dirname( dirname(__FILE__) )."/certstest");
+define("GETSSLDIR",dirname( dirname(__FILE__) )."/getssl");
 define("showhelp",false);
 $dnsscripts = [
     /*
