@@ -16,29 +16,33 @@ class GetSSL
     private $domainname = "";
     private $dnsscripts = array();
 
-    public $sshkeypub = "";
-
     /**
      * GetSSL constructor.
      * @param $domainname
      */
     public function __construct()
     {
+        /* Create defined dir where ssl certs will be stored*/
         if(!is_dir($this->GetSSLDir)){
             mkdir($this->GetSSLDir);
         }
-        //Set GetSSl Bin
+        /* set ssl bin path */
         $this->GetSSLBin = $this->GetSSLDir."/getssl";
-        if(!file_exists($this->GetSSLBin)){
-            shell_exec("curl --silent https://raw.githubusercontent.com/srvrco/getssl/master/getssl > ".$this->GetSSLBin." ; chmod 777 ".$this->GetSSLBin."; ".$this->GetSSLBin." -f;");
-        }
-        $this->GetSSLBin = "".$this->GetSSLBin." -w ".$this->GetSSLDir." ";
 
+        /* check if getssl bin exists. if not, download, chmod and run once to create config file */
+        if(!file_exists($this->GetSSLBin)){
+            shell_exec("curl --silent https://raw.githubusercontent.com/srvrco/getssl/master/getssl > ".$this->GetSSLBin." ; chmod 700 ".$this->GetSSLBin."; ".$this->GetSSLBin." -f;");
+        }
+
+        /* changing to the full command with workdir param */
+        $this->GetSSLBin = "".$this->GetSSLBin." -d -w ".$this->GetSSLDir." ";
+
+        /* create ssh key pair if not exist */
         if(!file_exists($this->GetSSLDir."/sshkey")){
             shell_exec("ssh-keygen -b 2048 -t rsa -f ".$this->GetSSLDir."/sshkey -q -N \"\"");
         }
-        $this->sshkeypub = $this->GetSSLDir."/sshkey.pub";
 
+        /* replace ssh() function in main getssl.cfg, so our generated ssh key is used */
         if(file_exists($this->GetSSLDir."/getssl.cfg") && strpos(file_get_contents($this->GetSSLDir."/getssl.cfg"),"ssh() {
     command ssh -i \"".$this->GetSSLDir."/sshkey\" \
         -o 'BatchMode yes' \
@@ -261,6 +265,10 @@ class GetSSL
         //print_r($output . "\n");
         return ($output);
 
+    }
+
+    public function getpublickey(){
+        return file_get_contents($this->GetSSLDir."/sshkey.pub");
     }
 
     public function renew($force = false)
