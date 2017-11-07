@@ -16,6 +16,8 @@ class GetSSL
     private $domainname = "";
     private $dnsscripts = array();
 
+    public $sshkeypub = "";
+
     /**
      * GetSSL constructor.
      * @param $domainname
@@ -30,13 +32,26 @@ class GetSSL
         if(!file_exists($this->GetSSLBin)){
             shell_exec("curl --silent https://raw.githubusercontent.com/srvrco/getssl/master/getssl > ".$this->GetSSLBin." ; chmod 777 ".$this->GetSSLBin."; ".$this->GetSSLBin." -f;");
         }
-        $this->GetSSLBin = $this->GetSSLBin." -w ".$this->GetSSLDir." ";
+        $this->GetSSLBin = "".$this->GetSSLBin." -w ".$this->GetSSLDir." ";
 
-        if(file_exists($this->GetSSLDir."/getssl.cfg") && strpos(file_get_contents($this->GetSSLDir."/getssl.cfg"),"ssh() {command ssh -i \"sshkey\" -o 'BatchMode yes' \"$@\"}") === false){
+        if(!file_exists($this->GetSSLDir."/sshkey")){
+            shell_exec("ssh-keygen -b 2048 -t rsa -f ".$this->GetSSLDir."/sshkey -q -N \"\"");
+        }
+        $this->sshkeypub = $this->GetSSLDir."/sshkey.pub";
+
+        if(file_exists($this->GetSSLDir."/getssl.cfg") && strpos(file_get_contents($this->GetSSLDir."/getssl.cfg"),"ssh() {
+    command ssh -i \"".$this->GetSSLDir."/sshkey\" \
+        -o 'BatchMode yes' \
+        \"$@\"
+}") === false){
             file_put_contents(
                 $this->GetSSLDir."/getssl.cfg",
                 file_get_contents($this->GetSSLDir."/getssl.cfg").
-                    "\n\n#Added by CertManager, do not change!\nssh() {command ssh -i \"sshkey\" -o 'BatchMode yes' \"$@\"}\n"
+                    "\n\n#Added by CertManager, do not change!\nssh() {
+    command ssh -i \"".$this->GetSSLDir."/sshkey\" \
+        -o 'BatchMode yes' \
+        \"$@\"
+}\n"
 
             );
         }
@@ -233,7 +248,7 @@ class GetSSL
 
     public function getdomains()
     {
-        return array_diff(scandir($this->GetSSLDir), array('..', '.', 'getssl', 'getssl.cfg', 'scripts', 'account.key'));
+        return array_diff(scandir($this->GetSSLDir), array('..', '.', 'getssl', 'getssl.cfg', 'scripts', 'account.key','sshkey','sshkey.pub'));
     }
 
     public function getcertinfo()
@@ -334,6 +349,8 @@ class GetSSL
             $config .= "DNSCONF=\"" . $params["DNSCONF"] . "\"\n";
             $config .= "DNS_ADD_COMMAND=\"" . $this->dnsscripts[$params["DNSCONF"]]["DNS_ADD_COMMAND"] . "\"\n";
             $config .= "DNS_DEL_COMMAND=\"" . $this->dnsscripts[$params["DNSCONF"]]["DNS_DEL_COMMAND"] . "\"\n";
+            shell_exec("chmod 775 ". $this->dnsscripts[$params["DNSCONF"]]["DNS_ADD_COMMAND"]);
+            shell_exec("chmod 775 ". $this->dnsscripts[$params["DNSCONF"]]["DNS_DEL_COMMAND"]);
 
         }
 
