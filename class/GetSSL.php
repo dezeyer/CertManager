@@ -35,30 +35,23 @@ class GetSSL
         }
 
         /* changing to the full command with workdir param */
-        $this->GetSSLBin = "".$this->GetSSLBin." -d -w ".$this->GetSSLDir." ";
+        $this->GetSSLBin = "/bin/bash ".$this->GetSSLBin." -w ".$this->GetSSLDir." ";
 
         /* create ssh key pair if not exist */
         if(!file_exists($this->GetSSLDir."/sshkey")){
             shell_exec("ssh-keygen -b 2048 -t rsa -f ".$this->GetSSLDir."/sshkey -q -N \"\"");
         }
 
-        /* replace ssh() function in main getssl.cfg, so our generated ssh key is used */
-        if(file_exists($this->GetSSLDir."/getssl.cfg") && strpos(file_get_contents($this->GetSSLDir."/getssl.cfg"),"ssh() {
-    command ssh -i \"".$this->GetSSLDir."/sshkey\" \
-        -o 'BatchMode yes' \
-        \"$@\"
-}") === false){
-            file_put_contents(
-                $this->GetSSLDir."/getssl.cfg",
-                file_get_contents($this->GetSSLDir."/getssl.cfg").
-                    "\n\n#Added by CertManager, do not change!\nssh() {
-    command ssh -i \"".$this->GetSSLDir."/sshkey\" \
-        -o 'BatchMode yes' \
-        \"$@\"
-}\n"
-
-            );
+        /* use generated ssh key */
+        if(!is_dir($_SERVER["HOME"]."/.ssh")){
+            mkdir($_SERVER["HOME"]."/.ssh");
         }
+        if(is_dir($_SERVER["HOME"]."/.ssh")){
+            if(!file_exists($_SERVER["HOME"]."/.ssh/config")){
+                file_put_contents($_SERVER["HOME"]."/.ssh/config","IdentityFile ".$this->GetSSLDir."/sshkey");
+            }
+        }
+
     }
 
     /**
@@ -276,6 +269,7 @@ class GetSSL
         if (!$this->isdomainselected())
             return 0;
         $taskname = "forcerenewal_".$this->domainname;
+        //shell_exec("mkdir ".$this->GetSSLDir."/".$this->domainname."/tmp");
         if($force){
             $cmd = $this->GetSSLBin . " -f " . $this->domainname . "";
         }else{
@@ -361,6 +355,8 @@ class GetSSL
             shell_exec("chmod 775 ". $this->dnsscripts[$params["DNSCONF"]]["DNS_DEL_COMMAND"]);
 
         }
+
+        $config .= "CHECK_REMOTE=\"false\"\n";
 
         //update generic params
         $updateparams = ["DOMAIN_CERT_LOCATION", "DOMAIN_KEY_LOCATION", "CA_CERT_LOCATION", "RELOAD_CMD"];

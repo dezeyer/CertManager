@@ -58,7 +58,7 @@ class BackgroundProcess
     public function run($outputFile = '/dev/null', $append = false)
     {
         if($this->command === null) {
-            return;
+            return "";
         }
 
         switch ($this->getOS()) {
@@ -66,7 +66,12 @@ class BackgroundProcess
                 shell_exec(sprintf('%s &', $this->command, $outputFile));
                 break;
             case self::OS_NIX:
-                $this->pid = (int)shell_exec(sprintf('%s %s %s 2>&1 & echo $!', $this->command, ($append) ? '>>' : '>', $outputFile));
+                #$outputFile = "/dev/null";
+                $outputFile = realpath($outputFile);
+                //todo if redirecting to defined output file getssl will not complete, if redirecting to /dev/null, it works. Please help
+                $cmd = sprintf('(%s) 2>%s >%s & echo $!', $this->command, $outputFile, $outputFile);//"tasklog/test");//
+                $this->pid = shell_exec($cmd);
+                return $cmd;
                 break;
             default:
                 throw new RuntimeException(sprintf(

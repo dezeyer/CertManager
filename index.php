@@ -7,7 +7,7 @@
  */
 session_start();
 ini_set("display_errors",true);
-error_reporting(E_ALL);
+error_reporting(-1);
 
 require_once("config.php");
 require_once("class/Auth.php");
