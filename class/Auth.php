@@ -10,6 +10,7 @@ class Auth
 {
     public static function login($password){
         if($password == PASSWORD){
+            ini_set('session.gc-maxlifetime', 432000);
             $_SESSION["loggedin"] = true;
             return true;
         }else{
