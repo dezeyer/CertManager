@@ -31,11 +31,12 @@ class GetSSL
 
         /* check if getssl bin exists. if not, download, chmod and run once to create config file */
         if(!file_exists($this->GetSSLBin)){
-            shell_exec("curl --silent https://raw.githubusercontent.com/srvrco/getssl/master/getssl > ".$this->GetSSLBin." ; chmod 700 ".$this->GetSSLBin."; ".$this->GetSSLBin." -f;");
+            shell_exec("curl --silent https://raw.githubusercontent.com/srvrco/getssl/master/getssl > ".
+                $this->GetSSLBin." ; chmod 700 ".$this->GetSSLBin."; ".$this->GetSSLBin." -c;");
         }
 
         /* changing to the full command with workdir param */
-        $this->GetSSLBin = "/bin/bash ".$this->GetSSLBin." -w ".$this->GetSSLDir." ";
+        $this->GetSSLBin = "".$this->GetSSLBin." -w ".$this->GetSSLDir." ";
 
         /* create ssh key pair if not exist */
         if(!file_exists($this->GetSSLDir."/sshkey")){
@@ -48,7 +49,7 @@ class GetSSL
         }
         if(is_dir($_SERVER["HOME"]."/.ssh")){
             if(!file_exists($_SERVER["HOME"]."/.ssh/config")){
-                file_put_contents($_SERVER["HOME"]."/.ssh/config","IdentityFile ".$this->GetSSLDir."/sshkey");
+                file_put_contents($_SERVER["HOME"]."/.ssh/config","IdentityFile ".$this->GetSSLDir."/sshkey\nStrictHostKeyChecking=no");
             }
         }
 
@@ -245,7 +246,18 @@ class GetSSL
 
     public function getdomains()
     {
-        return array_diff(scandir($this->GetSSLDir), array('..', '.', 'getssl', 'getssl.cfg', 'scripts', 'account.key','sshkey','sshkey.pub'));
+        $path = $this->GetSSLDir;
+        $results = scandir($path);
+        $domains = [];
+        foreach ($results as $result) {
+            if ($result === '.' or $result === '..') continue;
+
+            if (is_dir($path . '/' . $result)) {
+                $domains[] = $result;
+            }
+        }
+
+        return $domains;
     }
 
     public function getcertinfo()
@@ -269,7 +281,7 @@ class GetSSL
         if (!$this->isdomainselected())
             return 0;
         $taskname = "forcerenewal_".$this->domainname;
-        //shell_exec("mkdir ".$this->GetSSLDir."/".$this->domainname."/tmp");
+        shell_exec("mkdir ".$this->GetSSLDir."/".$this->domainname."/tmp");
         if($force){
             $cmd = $this->GetSSLBin . " -f " . $this->domainname . "";
         }else{
@@ -285,7 +297,7 @@ class GetSSL
             return 0;
         $taskname = "forcerenewal_".$this->domainname;
 
-        TaskManager::killTask($taskname);
+        echo TaskManager::killTask($taskname);
         return 1;
     }
 
@@ -349,6 +361,7 @@ class GetSSL
 
             $config .= "VALIDATE_VIA_DNS=\"true\"\n";
             $config .= "DNSCONF=\"" . $params["DNSCONF"] . "\"\n";
+            $config .= "DNS_CHECK_FUNC=\"dig\"\n";
             $config .= "DNS_ADD_COMMAND=\"" . $this->dnsscripts[$params["DNSCONF"]]["DNS_ADD_COMMAND"] . "\"\n";
             $config .= "DNS_DEL_COMMAND=\"" . $this->dnsscripts[$params["DNSCONF"]]["DNS_DEL_COMMAND"] . "\"\n";
             shell_exec("chmod 775 ". $this->dnsscripts[$params["DNSCONF"]]["DNS_ADD_COMMAND"]);
@@ -359,7 +372,7 @@ class GetSSL
         $config .= "CHECK_REMOTE=\"false\"\n";
 
         //update generic params
-        $updateparams = ["DOMAIN_CERT_LOCATION", "DOMAIN_KEY_LOCATION", "CA_CERT_LOCATION", "RELOAD_CMD"];
+        $updateparams = ["DOMAIN_CERT_LOCATION", "DOMAIN_KEY_LOCATION", "CA_CERT_LOCATION","DOMAIN_CHAIN_LOCATION", "RELOAD_CMD"];
         foreach ($updateparams as $updateparam) {
             if (isset($params[$updateparam]) && trim($params[$updateparam]) == "") {
                 unset($params[$updateparam]);
